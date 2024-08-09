@@ -41,5 +41,4 @@ void SDLApp::RunLoop() {
 
 void SDLApp::SetFrameRate(int fps) {
     m_frameRateMilli = 1.0 / fps * 1000;   
-    std::cout << m_frameRateMilli;
 }
