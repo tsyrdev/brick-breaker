@@ -12,6 +12,7 @@ class SDLApp {
         void SetEventCallback(std::function<void(void)> EventCallback); 
         void SetRenderCallback(std::function<void(void)> RenderCallback); 
         void RunLoop(); 
+        void SetFrameRate(int fps); 
         void QuitApp() { m_isRunning = false; }
         
         int GetMouseX() { return m_mouseX; }
@@ -22,6 +23,7 @@ class SDLApp {
         std::function<void(void)> m_eventCallback; 
         std::function<void(void)> m_renderCallback; 
         int m_mouseX, m_mouseY; 
+        double m_frameRateMilli;
         bool m_isRunning = true; 
 }; 
 
