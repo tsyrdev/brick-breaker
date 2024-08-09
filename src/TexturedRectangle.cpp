@@ -2,8 +2,8 @@
 
 #include "TexturedRectangle.hpp"
 
-TexturedRectangle::TexturedRectangle(SDL_Renderer* renderer, const char* filepath) {
-    m_surface = SDL_LoadBMP(filepath);           
+TexturedRectangle::TexturedRectangle(SDL_Renderer* renderer, std::string filepath) {
+    m_surface = ResourceManager::GetInstance().GetSurface(filepath);  
     SDL_SetColorKey(m_surface, SDL_TRUE, SDL_MapRGB(m_surface->format, m_rKey, m_gKey, m_bKey));
     m_texture = SDL_CreateTextureFromSurface(renderer, m_surface); 
 } 

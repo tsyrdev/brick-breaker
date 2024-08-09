@@ -2,11 +2,15 @@
 #define TEXTUREDRECTANGLE_HPP
 
 #include <iostream>
+#include <string> 
+
 #include <SDL.h> 
+
+#include "ResourceManager.hpp"
 
 class TexturedRectangle {
     public: 
-        TexturedRectangle(SDL_Renderer* renderer, const char* filepath);
+        TexturedRectangle(SDL_Renderer* renderer, std::string filepath);
         ~TexturedRectangle();
         void Update();
         void Render(SDL_Renderer* renderer);

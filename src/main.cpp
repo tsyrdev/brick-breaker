@@ -1,10 +1,11 @@
 #include <iostream> 
 
 #include <SDL.h> 
-#include <sys/syslimits.h>
+#include <string>
 
 #include "SDLApp.hpp"
 #include "GameEntity.hpp"
+#include "ResourceManager.hpp"
 
 const int WINDOW_WIDTH = 500; 
 const int WINDOW_HEIGHT = 500; 
@@ -20,13 +21,17 @@ const int START_PLAYER_X = WINDOW_WIDTH / 2 - PLAYER_WIDTH / 2;
 const int START_PLAYER_Y = START_BALL_Y + BALL_HEIGHT; 
 const int BALL_SPEED = 5; 
 const int PLAYER_SPEED = 5; 
-const char* title = "Brick Breaker!"; 
+const std::string title = "Brick Breaker!"; 
 
 SDLApp* app; 
 GameEntity* ball; 
 GameEntity* brick; 
 GameEntity* player; 
 int playerDir; 
+
+void lostHandler() {
+    app->QuitApp();
+}
 
 void eventCallback() {
     SDL_Event event; 
@@ -63,9 +68,8 @@ void renderCallback() {
         }
     } else {
         ballY += BALL_SPEED;
-        if (ballY + BALL_HEIGHT > WINDOW_HEIGHT) {
-            ballY -= BALL_SPEED;
-            ballUp = true; 
+        if (ballY > WINDOW_HEIGHT) {
+            lostHandler(); 
         }
     }
     if (ballRight) {
@@ -114,8 +118,7 @@ void renderCallback() {
 
 
 int main() {
-    const char* title = "Brick Breaker!"; 
-    app = new SDLApp(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT); 
+    app = new SDLApp(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT); 
     ball = new GameEntity(app->GetRenderer(), "./images/ball.bmp"); 
     brick = new GameEntity(app->GetRenderer(), "./images/brick.bmp"); 
     player = new GameEntity(app->GetRenderer(), "./images/player.bmp");
@@ -125,7 +128,6 @@ int main() {
     ball->SetDimensions(BALL_WIDTH, BALL_HEIGHT);
     ball->AddCollider(new Collider2D()); 
     ball->AutomateCollider();
-    // std::cout << "ball" << std::endl;
 
     brick->SetPosition(0, 0);
     brick->SetDimensions(BRICK_WIDTH, BRICK_HEIGHT);
@@ -134,7 +136,6 @@ int main() {
     player->SetDimensions(PLAYER_WIDTH, PLAYER_HEIGHT);
     player->AddCollider(new Collider2D()); 
     player->AutomateCollider();
-    // std::cout << "player" << std::endl;
 
     app->SetEventCallback(eventCallback);
     app->SetRenderCallback(renderCallback);
