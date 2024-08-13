@@ -11,6 +11,7 @@
 class TexturedRectangle {
     public: 
         TexturedRectangle(SDL_Renderer* renderer, std::string filepath);
+        TexturedRectangle(SDL_Renderer* renderer, std::string filepath, int r, int g, int b);
         ~TexturedRectangle();
         void Update();
         void Render(SDL_Renderer* renderer);
@@ -22,6 +23,7 @@ class TexturedRectangle {
         int GetHeight();
         void SetColorKey(Uint8 r, Uint8 g, Uint8 b);
         SDL_Surface* GetSurface() { return m_surface; }
+        SDL_Texture* GetTexture() { return m_texture; }
         int GetRKey() { 
             return m_rKey; }
         int GetGKey() { 
