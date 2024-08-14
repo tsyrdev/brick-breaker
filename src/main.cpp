@@ -35,6 +35,7 @@ const std::string ASSET_POWER_PLUSLIFE_FILEPATH = "./assets/images/heartPlus.bmp
 const std::string ASSET_POWER_MINUSLIFE_FILEPATH = "./assets/images/heartMinus.bmp";
 const std::string ASSET_POWER_PLUSBALL_FILEPATH = "./assets/images/ballMinus.bmp";
 const std::string ASSET_LOSTWRAPPER_FILEPATH = "./assets/images/lost.bmp";
+const std::string ASSET_RKEY_FILEPATH = "./assets/images/key.bmp";
 // const std::string ASSET_POWERBALL_FILEPATH = "./assets/images/powerball.bmp"; // Defined in PowerBall.hpp
 // files
 const std::string ASSET_SCORES_FILEPATH = "./assets/levels/scores.txt";
@@ -129,6 +130,7 @@ DynamicText* scoreMessage;
 DynamicText* highscoreMessage;
 DynamicText* highscore;
 DynamicText* score;
+TexturedRectangle* sKey;
 
 Sound* deathSound;
 
@@ -278,8 +280,9 @@ void activatePower(Power power) {
 // event handlers 
 
 void startEventHandler(SDL_Event& event) {
-    if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN) {
-        gameState->state = State::PLAYING;
+    if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.sym == SDLK_s)
+            gameState->state = State::PLAYING;
     }
 }
 
@@ -622,7 +625,27 @@ void HandleUpdate() {
 
 // render handlers
 void startRenderHandler() {
+    SDL_SetRenderDrawColor(app->GetRenderer(), 0xFF, 0xAB, 0xC7, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(app->GetRenderer());
 
+    DynamicText brick(ASSET_FONT1_FILEPATH, 250);
+    brick.DrawText(app->GetRenderer(), "BRICK", 10, 0, app->GetWindowW() / 2 - 10, 150, 255, 203, 221);
+    DynamicText breaker(ASSET_FONT1_FILEPATH, 250);
+    breaker.DrawText(app->GetRenderer(), "BREAKER", 10, 110, app->GetWindowW() / 2 - 10, 150, 255, 203, 221);
+    DynamicText two(ASSET_FONT1_FILEPATH, 250);
+    two.DrawText(app->GetRenderer(), "2", (app->GetWindowW()) / 2, -20, app->GetWindowW() / 2, 325, 0xF5, 0x70, 0x9E);
+
+    SDL_Rect rect;
+    rect.x = 10;
+    rect.y = 240;
+    rect.w = 480;
+    rect.h = 10;
+    SDL_SetRenderDrawColor(app->GetRenderer(), 0xF5, 0x70, 0x9E, SDL_ALPHA_OPAQUE);
+    SDL_RenderFillRect(app->GetRenderer(), &rect);
+
+    sKey->Render(app->GetRenderer());
+    DynamicText start(ASSET_FONT1_FILEPATH, 100); 
+    start.DrawText(app->GetRenderer(), "to start", sKey->GetX() + sKey->GetWidth() + 20, sKey->GetY() + sKey->GetHeight() / 2 - 25, 200, 50, 0xFF, 0x0E, 0x61);
 }
 
 void playingRenderHandler() {
@@ -773,7 +796,7 @@ int main() {
     gameState->ballSpeed = START_BALL_SPEED;
     gameState->score = 0; 
     gameState->level = LevelReader::GetInstance().LoadLevel(ASSET_DEFAULT_LEVEL_FILEPATH);
-    gameState->state = State::WON;
+    gameState->state = State::START;
     gameState->lives = 3; 
     gameState->isHighscore = false;
     heart = new TexturedRectangle(app->GetRenderer(), ASSET_HEART_FILEPATH);
@@ -781,6 +804,12 @@ int main() {
     cross->SetPosition(CROSS_X, CROSS_Y);
     cross->SetDimensions(app->GetWindowW(), app->GetWindowH());
 
+    // start screen config
+    sKey = new TexturedRectangle(app->GetRenderer(), ASSET_RKEY_FILEPATH);
+    sKey->SetDimensions(150, 150);
+    sKey->SetPosition(60, 300);
+
+    // lost screen config
     lostWrapper = new TexturedRectangle(app->GetRenderer(), ASSET_LOSTWRAPPER_FILEPATH);
     lostWrapper->SetPosition(START_LOST_X, START_LOST_Y);
     lostWrapper->SetDimensions(app->GetWindowW(), app->GetWindowH());
@@ -799,7 +828,6 @@ int main() {
     againMessage = new DynamicText(ASSET_FONT1_FILEPATH, 200);
     againMessage->SetPosition(AGAIN_X, START_LOST_Y + AGAIN_Y_OFFSET);
     againMessage->SetDimensions(AGAIN_W, AGAIN_H);
-
     lostMessage = new DynamicText(ASSET_FONT1_FILEPATH, 100);
     lostMessage->SetPosition(LOST_MESSAGE_X, LOST_MESSAGE_Y);
     lostMessage->SetDimensions(LOST_MESSAGE_W, LOST_MESSAGE_H);
