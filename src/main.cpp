@@ -57,7 +57,7 @@ const int BRICK_SPRITE_HEIGHT = 20;
 // related to the POWERBALLS
 // const int POWERBALL_WIDTH = 25.0; // Defined in PowerBall.hpp
 // const int POWERBALL_HEIGHT = 25.0; // Defined in PowerBall.hpp
-const float POWERBALL_INIT_SPEED = 3.5;
+const float POWERBALL_INIT_SPEED = 1.0;
 
 // related to the POWERBARS
 const int POWERLOGO_SIZE = 40; // its a square so 50x50 
@@ -113,7 +113,7 @@ const int COLL_RIGHT = 2;
 const int COLL_BOT = 3;
 
 // GAME TITLE
-const std::string TITLE = "Brick Vandal"; 
+const std::string TITLE = "Brick Breaker 2"; 
 
 SDLApp* app; 
 GameEntity* ball; 
@@ -191,6 +191,7 @@ void initGame() {
 
     player->SetPosition((app->GetWindowW() - PLAYER_WIDTH) / 2, START_PLAYER_Y);  
     
+    gameState->activePowers.clear();
     powers.clear();
     bricks.clear();
     for (int x = 0; x < sizeof(gameState->level.shape) / sizeof(gameState->level.shape[0]); ++x) 
@@ -234,6 +235,7 @@ void activatePower(Power power) {
     switch(power) {
         case Power::BALL_SPEED_UP: 
             activePower.textRect = new TexturedRectangle(app->GetRenderer(), ASSET_POWER_BALLSPEEDUP_FILEPATH.c_str());
+            gameState->ballSpeed += 0.5;
             // std::cout << "ball speedup" << std::endl;
             break;
         case Power::BALL_SLOW_DOWN:
