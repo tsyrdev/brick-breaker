@@ -136,6 +136,7 @@ enum State {
     START,
     PAUSED,
     PLAYING,
+    WON,
     MENU,
     LOST
 };
@@ -305,6 +306,29 @@ void playingEventHandler(SDL_Event& event, const Uint8* keyState) {
     }
 }
 
+void wonEventHandler(SDL_Event& event, const Uint8* keyState) {
+    if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.sym == SDLK_a)
+            gameState->playerDir = PLAYER_MOVE_LEFT; 
+        if (event.key.keysym.sym == SDLK_d)
+            gameState->playerDir = PLAYER_MOVE_RIGHT;
+    } else if (event.type == SDL_KEYUP) {
+        if (event.key.keysym.sym == SDLK_a || 
+            event.key.keysym.sym == SDLK_d) {
+            if (keyState[SDL_SCANCODE_A] == 1) {
+                gameState->playerDir = PLAYER_MOVE_LEFT;
+            }
+            else if (keyState[SDL_SCANCODE_D] == 1) {
+                gameState->playerDir = PLAYER_MOVE_RIGHT;
+            } else
+                gameState->playerDir = PLAYER_STOPPED;
+        } else if (event.key.keysym.sym == SDLK_r) {
+            initGame();
+            std::cout << "reset" << std::endl;
+        }
+    }
+}
+
 void pausedEventHandler(SDL_Event& event) {
     if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN) {
         gameState->state = State::PLAYING;
@@ -337,6 +361,9 @@ void HandleEvents() {
             case State::PLAYING:
                 playingEventHandler(event, keyState);
                 break;
+            case State::WON:
+                wonEventHandler(event, keyState);
+                break;
             case State::PAUSED:
                 pausedEventHandler(event);
                 break;
@@ -361,6 +388,9 @@ void playingUpdateHandler() {
         gameState->state = State::LOST;
         if (gameState->score > gameState->level.bestScore)
             gameState->isHighscore = true; 
+    }
+    if (bricks.size() == 0) {
+        gameState->state = State::WON;
     }
 
     int ballX = ball->GetX();
@@ -484,6 +514,65 @@ void playingUpdateHandler() {
     }
 }
 
+void wonUpdateHandler() {
+    int ballX = ball->GetX();
+    int ballY = ball->GetY();
+
+    if (ballX < 0 || ballX + ball->GetWidth() > app->GetWindowW()) {
+        gameState->ballXDir *= -1;
+        ballX += gameState->ballSpeed * gameState->ballXDir;
+    }
+    if (ballY < 0) {
+        gameState->ballYDir *= -1;
+        ballY += gameState->ballSpeed * gameState->ballYDir;
+    }
+    if (ballY > app->GetWindowH()) {
+        gameState->lives--;
+        if (gameState->lives > 0) {
+            gameState->ballYDir *= -1; 
+            gameState->ballXDir = rand() % 2 == 0 ? -1 : 1;
+            ballX = START_BALL_X;
+            ballY = START_BALL_Y;
+        }
+        //deathSound->PlaySound();
+    }
+
+    ballX += gameState->ballSpeed * gameState->ballXDir;
+    ballY += gameState->ballSpeed * gameState->ballYDir;
+
+    ball->SetPosition(ballX, ballY);
+    ball->SetCollider(ballX, ballY, BALL_WIDTH, BALL_HEIGHT);
+
+    int playerX = player->GetX(); 
+
+    playerX += gameState->playerSpeed * gameState->playerDir;
+
+    if (playerX + player->GetWidth() > app->GetWindowW()) {
+        playerX = app->GetWindowH() - player->GetWidth(); 
+        gameState->playerDir = 0; 
+    } else if (playerX < 0) {
+        playerX = 0;
+        gameState->playerDir = 0; 
+    }
+
+    player->SetPosition(playerX, START_PLAYER_Y); 
+    player->SetCollider(COLL_LEFT, playerX, START_PLAYER_Y, 1, 20);
+    player->SetCollider(COLL_RIGHT, playerX + PLAYER_WIDTH, START_PLAYER_Y, 1, 20);
+    player->SetCollider(COLL_TOP, playerX, START_PLAYER_Y, 100, 1);
+
+    SDL_bool* playerInter = player->Intersects(ball);
+    if (playerInter[COLL_LEFT] == SDL_TRUE) {
+        if (gameState->ballXDir == 1)
+            gameState->ballXDir *= -1;
+        gameState->ballYDir = -1; 
+    } else if (playerInter[COLL_RIGHT] == SDL_TRUE) {
+        if (gameState->ballXDir == -1)
+            gameState->ballXDir *= -1;
+        gameState->ballYDir = -1; 
+    } else if (playerInter[COLL_TOP] == SDL_TRUE)
+        gameState->ballYDir = -1;
+}
+
 void pausedUpdateHandler() {
 
 }
@@ -514,6 +603,9 @@ void HandleUpdate() {
             break;
         case State::PLAYING:
             playingUpdateHandler();
+            break;
+        case State::WON:
+            wonUpdateHandler(); 
             break;
         case State::PAUSED:
             pausedUpdateHandler();
@@ -575,6 +667,47 @@ void playingRenderHandler() {
     }
 }
 
+void wonRenderHandler() {
+    SDL_SetRenderDrawColor(app->GetRenderer(), 0xFF, 0xAB, 0xC7, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(app->GetRenderer());
+
+    std::string scoreStr = std::to_string(gameState->score);
+    DynamicText score(ASSET_FONT1_FILEPATH, 250); 
+    score.DrawText(app->GetRenderer(), scoreStr.c_str(), app->GetWindowW() / 2 - 100, app->GetWindowH() / 2, 200, 100, 255, 203, 221);
+    DynamicText levelName(ASSET_FONT1_FILEPATH, 200); 
+    levelName.DrawText(app->GetRenderer(), gameState->level.name.c_str(), app->GetWindowW() / 2 - 100, app->GetWindowH() / 2 + 80, 200, 50, 255, 203, 221);
+    DynamicText lives(ASSET_FONT1_FILEPATH, 100); 
+    lives.DrawText(app->GetRenderer(), "Lives: ", 5, app->GetWindowH() - 30, 100, 30, 255, 203, 221);
+
+    for (int i = 0; i < gameState->lives; ++i) {
+        heart->SetPosition(105 + i * 30, app->GetWindowH() - 30);
+        heart->SetDimensions(25, 25);
+        heart->Render(app->GetRenderer());
+    }
+    if (gameState->lives <= 0) {
+        DynamicText smile(ASSET_FONT1_FILEPATH, 100); 
+        smile.DrawText(app->GetRenderer(), ": )", 110, app->GetWindowH() - 30, 15, 30, 255, 203, 221);
+    }
+
+    int powerBarW = gameState->activePowers.size() * POWERLOGO_SIZE + (5 * (gameState->activePowers.size() - 1)); // 5 is the margin 
+    int powerBarH = POWERLOGO_SIZE; 
+
+    for (int i = 0; i < gameState->activePowers.size(); ++i) {
+        gameState->activePowers[i].textRect->SetDimensions(POWERLOGO_SIZE, POWERLOGO_SIZE); 
+        gameState->activePowers[i].textRect->SetPosition(((app->GetWindowW() - powerBarW) / 2) + i * (POWERLOGO_SIZE + 5), START_PLAYER_Y + PLAYER_SPRITE_HEIGHT + 5); 
+        gameState->activePowers[i].textRect->Render(app->GetRenderer());
+    }
+    DynamicText you(ASSET_FONT1_FILEPATH, 250);
+    you.DrawText(app->GetRenderer(), "YOU", (app->GetWindowW() - 400) / 2, 0, 400, 150, 255, 203, 221);
+    DynamicText won(ASSET_FONT1_FILEPATH, 250);
+    won.DrawText(app->GetRenderer(), "WON", (app->GetWindowW() - 400) / 2, 110, 400, 150, 255, 203, 221);
+    DynamicText reset(ASSET_FONT1_FILEPATH, 100);
+    reset.DrawText(app->GetRenderer(), "press R to reset", (app->GetWindowW() - 300) / 2, 233, 300, 30, 0xF5, 0x70, 0x9E);
+
+    player->Render();
+    ball->Render();
+}
+
 void pausedRenderHandler() {
 
 }
@@ -605,6 +738,9 @@ void HandleRendering() {
             break;
         case State::PLAYING:
             playingRenderHandler();
+            break;
+        case State::WON:
+            wonRenderHandler();
             break;
         case State::PAUSED:
             pausedRenderHandler();
@@ -637,7 +773,7 @@ int main() {
     gameState->ballSpeed = START_BALL_SPEED;
     gameState->score = 0; 
     gameState->level = LevelReader::GetInstance().LoadLevel(ASSET_DEFAULT_LEVEL_FILEPATH);
-    gameState->state = State::PLAYING;
+    gameState->state = State::WON;
     gameState->lives = 3; 
     gameState->isHighscore = false;
     heart = new TexturedRectangle(app->GetRenderer(), ASSET_HEART_FILEPATH);
