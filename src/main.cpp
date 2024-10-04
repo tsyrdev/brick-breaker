@@ -18,7 +18,7 @@ const int WINDOW_HEIGHT = 500;
 
 // FILEPATHS
 // fonts
-const std::string ASSET_FONT1_FILEPATH = "./assets/fonts/start.otf";
+const std::string ASSET_FONT1_FILEPATH = "./assets/fonts/ka1.ttf";
 // images
 const std::string ASSET_BALL_FILEPATH = "./assets/images/ball.bmp";
 const std::string ASSET_BRICK1_FILEPATH = "./assets/images/brick1.bmp";
@@ -35,7 +35,11 @@ const std::string ASSET_POWER_PLUSLIFE_FILEPATH = "./assets/images/heartPlus.bmp
 const std::string ASSET_POWER_MINUSLIFE_FILEPATH = "./assets/images/heartMinus.bmp";
 const std::string ASSET_POWER_PLUSBALL_FILEPATH = "./assets/images/ballMinus.bmp";
 const std::string ASSET_LOSTWRAPPER_FILEPATH = "./assets/images/lost.bmp";
-const std::string ASSET_RKEY_FILEPATH = "./assets/images/key.bmp";
+const std::string ASSET_SKEY_FILEPATH = "./assets/images/sKey.bmp";
+const std::string ASSET_PKEY_FILEPATH = "./assets/images/pKey.bmp";
+const std::string ASSET_MKEY_FILEPATH = "./assets/images/mKey.bmp";
+const std::string ASSET_LKEY_FILEPATH = "./assets/images/lKey.bmp";
+const std::string ASSET_LOGO_FILEPATH = "./assets/images/logoWBG.bmp";
 // const std::string ASSET_POWERBALL_FILEPATH = "./assets/images/powerball.bmp"; // Defined in PowerBall.hpp
 // files
 const std::string ASSET_SCORES_FILEPATH = "./assets/levels/scores.txt";
@@ -107,6 +111,11 @@ const int CROSS_X = 0;
 const int CROSS_Y = 470;
 const int CROSS_Y_OFFSET = -30;
 
+const int START_KEY_WIDTH = 150;
+const int START_KEY_HEIGHT = 150;
+const int START_KEY_X = 60;
+const int START_KEY_Y = 300;
+
 // COLLIDER INDEXES
 const int COLL_LEFT = 0;
 const int COLL_TOP = 1;
@@ -124,13 +133,17 @@ GameEntity* player;
 TexturedRectangle* heart;
 TexturedRectangle* lostWrapper;
 TexturedRectangle* cross;
+TexturedRectangle* gameLogo;
 DynamicText* lostMessage;
 DynamicText* againMessage;
 DynamicText* scoreMessage;
 DynamicText* highscoreMessage;
 DynamicText* highscore;
 DynamicText* score;
-TexturedRectangle* sKey;
+GameEntity* sCollider; 
+TexturedRectangle* pKey;
+TexturedRectangle* mKey;
+TexturedRectangle* lKey;
 
 Sound* deathSound;
 
@@ -140,6 +153,7 @@ enum State {
     PLAYING,
     WON,
     MENU,
+    LEVEL,
     LOST
 };
 
@@ -231,6 +245,11 @@ void initGame() {
             }
 }
 
+void pauseGame() {
+    gameState->snapshot = app->GetScreenshot(); 
+    SDL_SetTextureColorMod(gameState->snapshot, 160, 160, 160);
+}
+
 void activatePower(Power power) {
     ActivePower activePower;
     activePower.power = power;
@@ -281,8 +300,12 @@ void activatePower(Power power) {
 
 void startEventHandler(SDL_Event& event) {
     if (event.type == SDL_KEYDOWN) {
-        if (event.key.keysym.sym == SDLK_s)
+        if (event.key.keysym.sym == SDLK_s) {
+            ball->SetPosition(START_BALL_X, START_BALL_Y);
             gameState->state = State::PLAYING;
+            delete sCollider; 
+            delete gameLogo;
+        }
     }
 }
 
@@ -290,8 +313,13 @@ void playingEventHandler(SDL_Event& event, const Uint8* keyState) {
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_a)
             gameState->playerDir = PLAYER_MOVE_LEFT; 
-        if (event.key.keysym.sym == SDLK_d)
+        else if (event.key.keysym.sym == SDLK_d)
             gameState->playerDir = PLAYER_MOVE_RIGHT;
+        else if (event.key.keysym.sym == SDLK_p) {
+            pauseGame();
+            gameState->state = State::PAUSED;
+            std::cout << "pause" << std::endl;
+        }
     } else if (event.type == SDL_KEYUP) {
         if (event.key.keysym.sym == SDLK_a || 
             event.key.keysym.sym == SDLK_d) {
@@ -305,7 +333,7 @@ void playingEventHandler(SDL_Event& event, const Uint8* keyState) {
         } else if (event.key.keysym.sym == SDLK_r) {
             initGame();
             std::cout << "reset" << std::endl;
-        }
+        } 
     }
 }
 
@@ -333,12 +361,27 @@ void wonEventHandler(SDL_Event& event, const Uint8* keyState) {
 }
 
 void pausedEventHandler(SDL_Event& event) {
-    if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN) {
-        gameState->state = State::PLAYING;
+    if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.sym == SDLK_p) 
+            gameState->state = State::PLAYING;
+        else if (event.key.keysym.sym == SDLK_m) 
+            gameState->state = State::MENU;
+        else if (event.key.keysym.sym == SDLK_l) 
+            gameState->state = State::LEVEL;
     }
 }
 
-//TODO: menuEventHandler();
+void menuEventHandler(SDL_Event& event) {
+    if (event.type == SDL_KEYDOWN) {
+        if (event.key.keysym.sym == SDLK_ESCAPE) 
+            gameState->state = State::PAUSED; 
+        else if (event.key.keysym.sym) {
+            // TODO: Handle filepath input 
+            // Essentially build the string
+            // with the user's keypresses.
+        }
+    }
+}
 
 void lostEventHandler(SDL_Event& event) {
     if (event.type == SDL_KEYDOWN || event.type == SDL_MOUSEBUTTONDOWN) {
@@ -370,7 +413,10 @@ void HandleEvents() {
             case State::PAUSED:
                 pausedEventHandler(event);
                 break;
+            case State::LEVEL:
+                break;
             case State::MENU: 
+                menuEventHandler(event);
                 break;
             case State::LOST:
                 lostEventHandler(event);
@@ -383,7 +429,32 @@ void HandleEvents() {
 
 // update handlers
 void startUpdateHandler() {
+    int ballX = ball->GetX();
+    int ballY = ball->GetY();
 
+    if (ballX < 0 || ballX + ball->GetWidth() > app->GetWindowW()) {
+        gameState->ballXDir *= -1;
+        ballX += gameState->ballSpeed * gameState->ballXDir;
+    }
+    if (ballY < 0 || ballY > app->GetWindowH()) {
+        gameState->ballYDir *= -1;
+        ballY += gameState->ballSpeed * gameState->ballYDir;
+    }
+
+    ballX += gameState->ballSpeed * gameState->ballXDir;
+    ballY += gameState->ballSpeed * gameState->ballYDir;
+
+    ball->SetPosition(ballX, ballY);
+    ball->SetCollider(ballX, ballY, BALL_WIDTH, BALL_HEIGHT);
+
+    SDL_bool* intersections = sCollider->Intersects(ball); 
+    if (intersections[COLL_TOP] || intersections[COLL_BOT]) {
+        gameState->ballYDir *= -1;
+    }
+    if (intersections[COLL_LEFT] || intersections[COLL_RIGHT]) {
+        gameState->ballXDir *= -1;
+    }
+    delete intersections;
 }
 
 void playingUpdateHandler() {
@@ -580,6 +651,10 @@ void pausedUpdateHandler() {
 
 }
 
+void menuUpdateHandler() {
+
+}
+
 void lostUpdateHandler() {
     int lostMessageY = lostMessage->GetY();
     int lostWrapperY = lostWrapper->GetY();
@@ -613,8 +688,10 @@ void HandleUpdate() {
         case State::PAUSED:
             pausedUpdateHandler();
             break;
+        case State::LEVEL:
+            break;
         case State::MENU: 
-            // TODO: menuUpdateHandler
+            menuUpdateHandler();
             break;
         case State::LOST:
             lostUpdateHandler();
@@ -628,24 +705,13 @@ void startRenderHandler() {
     SDL_SetRenderDrawColor(app->GetRenderer(), 0xFF, 0xAB, 0xC7, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(app->GetRenderer());
 
-    DynamicText brick(ASSET_FONT1_FILEPATH, 250);
-    brick.DrawText(app->GetRenderer(), "BRICK", 10, 0, app->GetWindowW() / 2 - 10, 150, 255, 203, 221);
-    DynamicText breaker(ASSET_FONT1_FILEPATH, 250);
-    breaker.DrawText(app->GetRenderer(), "BREAKER", 10, 110, app->GetWindowW() / 2 - 10, 150, 255, 203, 221);
-    DynamicText two(ASSET_FONT1_FILEPATH, 250);
-    two.DrawText(app->GetRenderer(), "2", (app->GetWindowW()) / 2, -20, app->GetWindowW() / 2, 325, 0xF5, 0x70, 0x9E);
+    gameLogo->Render(app->GetRenderer());
+    sCollider->Render();
 
-    SDL_Rect rect;
-    rect.x = 10;
-    rect.y = 240;
-    rect.w = 480;
-    rect.h = 10;
-    SDL_SetRenderDrawColor(app->GetRenderer(), 0xF5, 0x70, 0x9E, SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRect(app->GetRenderer(), &rect);
-
-    sKey->Render(app->GetRenderer());
     DynamicText start(ASSET_FONT1_FILEPATH, 100); 
-    start.DrawText(app->GetRenderer(), "to start", sKey->GetX() + sKey->GetWidth() + 20, sKey->GetY() + sKey->GetHeight() / 2 - 25, 200, 50, 0xFF, 0x0E, 0x61);
+    start.DrawText(app->GetRenderer(), "to start", sCollider->GetX() + sCollider->GetWidth() + 20, sCollider->GetY() + sCollider->GetHeight() / 2 - 20, 200, 40, 0xFF, 0x2C, 0x89);
+
+    ball->Render(); 
 }
 
 void playingRenderHandler() {
@@ -654,11 +720,15 @@ void playingRenderHandler() {
 
     std::string scoreStr = std::to_string(gameState->score);
     DynamicText score(ASSET_FONT1_FILEPATH, 250); 
-    score.DrawText(app->GetRenderer(), scoreStr.c_str(), app->GetWindowW() / 2 - 100, app->GetWindowH() / 2, 200, 100, 255, 203, 221);
+    score.DrawText(app->GetRenderer(), scoreStr.c_str(), app->GetWindowW() / 2 - 100, app->GetWindowH() / 2 - 20, 200, 100, 0xFF, 0x2C, 0x89);
     DynamicText levelName(ASSET_FONT1_FILEPATH, 200); 
     levelName.DrawText(app->GetRenderer(), gameState->level.name.c_str(), app->GetWindowW() / 2 - 100, app->GetWindowH() / 2 + 80, 200, 50, 255, 203, 221);
     DynamicText lives(ASSET_FONT1_FILEPATH, 100); 
     lives.DrawText(app->GetRenderer(), "Lives: ", 5, app->GetWindowH() - 30, 100, 30, 255, 203, 221);
+    DynamicText reset(ASSET_FONT1_FILEPATH, 100); 
+    reset.DrawText(app->GetRenderer(), "R - reset", app->GetWindowW() - 120, app->GetWindowH() - 30, 120, 30, 255, 203, 221);
+    DynamicText pause(ASSET_FONT1_FILEPATH, 100); 
+    pause.DrawText(app->GetRenderer(), "P - pause", app->GetWindowW() - 260, app->GetWindowH() - 30, 120, 30, 255, 203, 221);
 
     for (int i = 0; i < gameState->lives; ++i) {
         heart->SetPosition(105 + i * 30, app->GetWindowH() - 30);
@@ -732,6 +802,24 @@ void wonRenderHandler() {
 }
 
 void pausedRenderHandler() {
+    SDL_RenderCopy(app->GetRenderer(), gameState->snapshot, NULL, NULL);
+    mKey->Render(app->GetRenderer());
+
+    DynamicText menu(ASSET_FONT1_FILEPATH, 100); 
+    menu.DrawText(app->GetRenderer(), "to go to menu", mKey->GetX() + mKey->GetWidth() + 20, mKey->GetY() + mKey->GetHeight() / 2 - 10, 265, 30, 0xFF, 0x2C, 0x89);
+    lKey->Render(app->GetRenderer());
+    DynamicText level(ASSET_FONT1_FILEPATH, 100); 
+    level.DrawText(app->GetRenderer(), "to choose level", lKey->GetX() + lKey->GetWidth() + 20, lKey->GetY() + lKey->GetHeight() / 2 - 10, 260, 30, 0xFF, 0x2C, 0x89);
+    pKey->Render(app->GetRenderer());
+    DynamicText pause(ASSET_FONT1_FILEPATH, 100); 
+    pause.DrawText(app->GetRenderer(), "to resume", pKey->GetX() + pKey->GetWidth() + 20, pKey->GetY() + pKey->GetHeight() / 2 - 10, 200, 30, 0xFF, 0x2C, 0x89);
+}
+
+void levelRenderHandler() {
+
+}
+
+void menuRenderHandler() {
 
 }
 
@@ -768,8 +856,10 @@ void HandleRendering() {
         case State::PAUSED:
             pausedRenderHandler();
             break;
+        case State::LEVEL: 
+            levelRenderHandler();
         case State::MENU: 
-            // TODO: menuUpdateHandler
+            menuRenderHandler(); 
             break;
         case State::LOST:
             lostRenderHandler();
@@ -805,9 +895,33 @@ int main() {
     cross->SetDimensions(app->GetWindowW(), app->GetWindowH());
 
     // start screen config
-    sKey = new TexturedRectangle(app->GetRenderer(), ASSET_RKEY_FILEPATH);
-    sKey->SetDimensions(150, 150);
-    sKey->SetPosition(60, 300);
+    gameLogo = new TexturedRectangle(app->GetRenderer(), ASSET_LOGO_FILEPATH);
+    gameLogo->SetDimensions(450, 150);
+    gameLogo->SetPosition(25, 100);
+
+    sCollider = new GameEntity(app->GetRenderer());
+    sCollider->AddTexturedComponent(ASSET_SKEY_FILEPATH);
+    sCollider->SetPosition(START_KEY_X, START_KEY_Y);
+    sCollider->SetDimensions(START_KEY_WIDTH, START_KEY_HEIGHT);
+    sCollider->AddCollider();
+    sCollider->SetCollider(COLL_LEFT, START_KEY_X, START_KEY_Y, 1, START_KEY_HEIGHT); 
+    sCollider->AddCollider();
+    sCollider->SetCollider(COLL_TOP, START_KEY_X, START_KEY_Y, START_KEY_WIDTH, 1); 
+    sCollider->AddCollider();
+    sCollider->SetCollider(COLL_RIGHT, START_KEY_X + START_KEY_WIDTH, START_KEY_Y, 1, START_KEY_HEIGHT); 
+    sCollider->AddCollider();
+    sCollider->SetCollider(COLL_BOT, START_KEY_X, START_KEY_Y + START_KEY_HEIGHT, START_KEY_WIDTH, 1); 
+
+    // paused screen config
+    pKey = new TexturedRectangle(app->GetRenderer(), ASSET_PKEY_FILEPATH);
+    pKey->SetDimensions(100, 100);
+    pKey->SetPosition(60, 300);
+    mKey = new TexturedRectangle(app->GetRenderer(), ASSET_MKEY_FILEPATH);
+    mKey->SetDimensions(100, 100);
+    mKey->SetPosition(60, 75);
+    lKey = new TexturedRectangle(app->GetRenderer(), ASSET_LKEY_FILEPATH);
+    lKey->SetDimensions(100, 100);
+    lKey->SetPosition(60, 187);
 
     // lost screen config
     lostWrapper = new TexturedRectangle(app->GetRenderer(), ASSET_LOSTWRAPPER_FILEPATH);

@@ -1,0 +1,10 @@
+TODO: 
+- menu option to change levels 
+- online pvp option
+- online coop option
+
+- check all dynamically allocated memeory to see if it was cleare
+
+FONT:
+- S is not clear enough
+- R is funny looking 

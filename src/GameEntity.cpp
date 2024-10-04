@@ -49,7 +49,7 @@ void GameEntity::AutomateCollider(int index) {
     m_hitboxes[index]->SetColliderBoxAutomatically(x, y, m_sprites[m_spriteIndex]->GetSurface(), r, g, b, m_inGameScale);
 }
 void GameEntity::SetCollider(int x, int y, int w, int h) {
-    m_hitboxes[0]->SetColliderBox(x, y, w, h);
+    m_hitboxes[m_spriteIndex]->SetColliderBox(x, y, w, h);
 }
 void GameEntity::SetCollider(int index, int x, int y, int w, int h) {
     m_hitboxes[index]->SetColliderBox(x, y, w, h);
